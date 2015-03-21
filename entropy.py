@@ -15,16 +15,15 @@ def entropy(input, verbose):
 	# symbol at each offset from the beginning of an input token.
 	frequency = {}
 
-	line_count = 0
+	token_count = 0
 
 	# Count the frequency of each character at each offset within a token.
-	for line in input:
-		line = line.strip()
-		verbose and print("< '%s'" % line, file=sys.stderr)
-		line_count += 1
+	for token in input:
+		verbose and print("<\t%s" % token, file=sys.stderr)
+		token_count += 1
 
-		for index in range(0, len(line)):
-			symbol = line[index]
+		for index in range(0, len(token)):
+			symbol = token[index]
 			if (not index in frequency):
 				frequency[index] = {}
 			if (not symbol in frequency[index]):
@@ -32,16 +31,16 @@ def entropy(input, verbose):
 			else:
 				frequency[index][symbol] += 1
 
-	# Some lines might be shorter than others. We assume that shorter lines
-	# are padded to the length of the longest line using symbol None. This
+	# Some tokens might be shorter than others. We assume that shorter tokens
+	# are padded to the length of the longest token using symbol None. This
 	# makes sure that the sum of the symbol frequencies at each index equals
 	# the number of entries we have processed. In terms of entropy calculation
 	# this factors in the length of the entries.
 	for index in sorted(frequency.keys(), reverse=True):
-		frequency_sum = line_count;
+		frequency_sum = token_count
 
-		for char in frequency[index].keys():
-			frequency_sum -= frequency[index][char]
+		for symbol in frequency[index].keys():
+			frequency_sum -= frequency[index][symbol]
 		assert (frequency_sum >= 0),\
 			"frequency_sum[%d] %d < 0" % (index, frequency_sum)
 
@@ -68,7 +67,7 @@ def entropy(input, verbose):
 			frequency_sums[index] = 0
 			for symbol in frequency[index].keys():
 				frequency_sums[index] += frequency[index][symbol]
-			assert (frequency_sums[index] == line_count)
+			assert (frequency_sums[index] == token_count)
 		#
 		for symbol in frequency[index].keys():
 			if (not index in probability):
@@ -87,32 +86,33 @@ def entropy(input, verbose):
 				(index, probability_sum, int(probability_sum+0.001))
 
 	# Shannon Entropy
-	for line in input:
-		line = line.strip()
-
-		# Shannon Entropy
+	for token in input:
 		entropy = 0
-		for index in range(0, len(line)):
-			symbol = line[index];
+
+		for index in frequency.keys():
+			if (index < len(token)):
+				symbol = token[index]
+			else:
+				symbol = None
 
 			entropy += probability[index][symbol] *\
-				math.log(probability[index][symbol], 2);
+				math.log(probability[index][symbol], 2)
 
-			verbose and print("> '%s' [%d] P(%s)=%f F(%s)=%d/%d E[0:%d]=%f" %
-				(line, index, symbol, probability[index][symbol],
+			verbose and print(">\t%s\t[%d] P(%s) = %f F(%s) = %d / %d E[0:%d] = %f" %
+				(token, index, symbol, probability[index][symbol],
 				symbol, frequency[index][symbol], frequency_sums[index],
 				index + 1, 0 - entropy), file=sys.stderr)
 
 		entropy = 0 - entropy
 
-		print("%s\t%f" % (line, entropy))
+		print("%s\t%f" % (token, entropy))
 
 
 # Input file is expected to be either:
-# a) a set of entries on individual lines
+# a) a set of entries on individual tokens
 # b) a cookies.sqlite database maintained by Firefox (moz_cookies table)
 #
-# Output is an equivalent number of lines with tab-separated values
+# Output is an equivalent number of tokens with tab-separated values
 # where the left value is the original entry and the right value is
 # the calculated entropy in bits.
 
@@ -127,7 +127,7 @@ def main(argv):
 		help="output details on how entropy is calculated")
 
 	parser.add_argument("input", nargs=1,
-		help="name of the input file (e.g., cookie_values.txt or cookies.sqlite");
+		help="name of the input file (e.g., cookie_values.txt or cookies.sqlite")
 
 	args = parser.parse_args()
 
@@ -144,7 +144,7 @@ def main(argv):
 		args.verbose and print("# NOTICE: Treating '%s' as a text file" %
 				(args.input[0]), file=sys.stderr)
 		file = open(args.input[0], "r") or die()
-		entropy(file.readlines(), args.verbose)
+		entropy(map(lambda x: x.strip("\n"), file.readtokens()), args.verbose)
 		file.close()
 
 
