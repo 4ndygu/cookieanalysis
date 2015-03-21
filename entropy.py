@@ -10,6 +10,16 @@ import sqlite3
 
 import math
 
+def printable(symbol):
+	if (not symbol):
+		return symbol
+
+	if (ord(symbol) >= ord("!") and ord(symbol) <= ord("~")):
+		return symbol
+	else:
+		return "0x" + symbol.encode("hex")
+
+
 def entropy(input, verbose):
 	# Dictionary of dictionaries used to store the frequency of each
 	# symbol at each offset from the beginning of an input token.
@@ -99,8 +109,8 @@ def entropy(input, verbose):
 				math.log(probability[index][symbol], 2)
 
 			verbose and print(">\t%s\t[%d] P(%s) = %f F(%s) = %d / %d E[0:%d] = %f" %
-				(token, index, symbol, probability[index][symbol],
-				symbol, frequency[index][symbol], frequency_sums[index],
+				(token, index, printable(symbol), probability[index][symbol],
+				printable(symbol), frequency[index][symbol], frequency_sums[index],
 				index + 1, 0 - entropy), file=sys.stderr)
 
 		entropy = 0 - entropy
@@ -144,7 +154,7 @@ def main(argv):
 		args.verbose and print("# NOTICE: Treating '%s' as a text file" %
 				(args.input[0]), file=sys.stderr)
 		file = open(args.input[0], "r") or die()
-		entropy(map(lambda x: x.strip("\n"), file.readtokens()), args.verbose)
+		entropy(map(lambda x: x.strip("\n"), file.readlines()), args.verbose)
 		file.close()
 
 
